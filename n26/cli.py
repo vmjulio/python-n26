@@ -4,6 +4,7 @@ import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Tuple
+import pandas as pd
 
 import click
 from requests import HTTPError
@@ -377,6 +378,8 @@ def statements(id: str or None, param_from: datetime or None, param_to: datetime
 def transactions(categories: str, pending: bool, param_from: datetime or None, param_to: datetime or None,
                  text_filter: str, limit: int):
     """ Show transactions (default: 5) """
+    import json
+
     if not JSON_OUTPUT and not pending and not param_from and not limit:
         limit = 5
         click.echo(click.style("Output is limited to {} entries.".format(limit), fg="yellow"))
@@ -389,43 +392,36 @@ def transactions(categories: str, pending: bool, param_from: datetime or None, p
     if JSON_OUTPUT:
         _print_json(transactions_data)
         return
+    
+    #df = pd.DataFrame.from_records(transactions_data)
+    #df.to_csv("transactions.csv")
+    #click.echo("Dataframe dumped to transactions.csv")
 
     lines = []
     for i, transaction in enumerate(transactions_data):
         amount = transaction.get(AMOUNT, 0)
         currency = transaction.get(CURRENCY, None)
-
-        if amount < 0:
-            sender_name = "You"
-            sender_iban = ""
-            recipient_name = transaction.get('merchantName', transaction.get('partnerName', ''))
-            recipient_iban = transaction.get('partnerIban', '')
-        else:
-            sender_name = transaction.get('partnerName', '')
-            sender_iban = transaction.get('partnerIban', '')
-            recipient_name = "You"
-            recipient_iban = ""
-
-        recurring = transaction.get('recurring', '')
+        item = transaction.get('merchantName', transaction.get('partnerName', ''))
+        obs = transaction.get('partnerIban', '')
 
         if transaction['type'] == ATM_WITHDRAW:
             message = "ATM Withdrawal"
         else:
-            message = transaction.get(REFERENCE_TEXT)
+            message = transaction.get(REFERENCE_TEXT) if transaction.get(REFERENCE_TEXT) != '-' else ''
 
         lines.append([
-            _datetime_extractor('visibleTS')(transaction),
-            "{} {}".format(amount, currency),
-            "{}\n{}".format(sender_name, sender_iban),
-            "{}\n{}".format(recipient_name, recipient_iban),
-            _insert_newlines(message),
-            recurring
+            _date_extractor('visibleTS')(transaction),
+            "N26",
+            "{}".format(item),
+            "{}".format(obs),
+            message,
+            "{}".format(amount)
         ])
 
-    headers = ['Date', 'Amount', 'From', 'To', 'Message', 'Recurring']
-    text = tabulate(lines, headers, numalign='right')
-
-    click.echo(text.strip())
+    headers = ['Date', 'ledger', 'item', 'obs', 'obs2', 'value']
+    df = pd.DataFrame(lines, columns=headers)
+    df.to_csv("transactions.csv", index=False)
+    click.echo("Dataframe dumped to transactions.csv")
 
 
 @cli.command("transaction")
@@ -603,6 +599,28 @@ def _datetime_extractor(key: str, date_only: bool = False):
         fmt = "%x"
     else:
         fmt = "%x %X"
+
+    def extractor(dictionary: dict):
+        value = dictionary.get(key)
+        time = _timestamp_ms_to_date(value)
+        if time is None:
+            return None
+        else:
+            time = time.astimezone()
+            return time.strftime(fmt)
+
+    return extractor
+
+
+def _date_extractor(key: str, date_only: bool = False):
+    """
+    Helper function to extract a datetime value from a dict
+    :param key: the dictionary key used to access the value
+    :param date_only: removes the time from the output
+    :return: an extractor function
+    """
+
+    fmt = "%Y-%m-%d"
 
     def extractor(dictionary: dict):
         value = dictionary.get(key)
