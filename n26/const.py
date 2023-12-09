@@ -4,7 +4,7 @@ transaction types and their meaning
 DEBIT_PAYMENT = "AA"
 SEPA_WITHDRAW = "DD"
 INCOMING_TRANSFER = "CT"
-ATM_WITHDRAW = "PT"
+ATM_WITHDRAW = "<TBD>"
 
 """
 transaction item keys
