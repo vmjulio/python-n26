@@ -393,10 +393,6 @@ def transactions(categories: str, pending: bool, param_from: datetime or None, p
         _print_json(transactions_data)
         return
     
-    #df = pd.DataFrame.from_records(transactions_data)
-    #df.to_csv("transactions.csv")
-    #click.echo("Dataframe dumped to transactions.csv")
-
     lines = []
     for i, transaction in enumerate(transactions_data):
         amount = transaction.get(AMOUNT, 0)
@@ -423,7 +419,7 @@ def transactions(categories: str, pending: bool, param_from: datetime or None, p
 
     headers = ['Date', 'ledger', 'item', 'obs', 'obs2', 'value']
     df = pd.DataFrame(lines, columns=headers)
-    df.to_csv("transactions-{param_from}-{param_to}.csv", index=False)
+    df.to_csv("transactions-{from_}-{to_}.csv", index=False)
     click.echo("Dataframe dumped to transactions.csv")
 
 
