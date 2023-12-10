@@ -414,13 +414,13 @@ def transactions(categories: str, pending: bool, param_from: datetime or None, p
             "{}".format(amount)
         ])
 
-    from_ = datetime.strftime(from_, "%Y-%m-%d")
-    to_ = datetime.strftime(to_, "%Y-%m-%d")
+    from_ = datetime.strftime(param_from, "%Y-%m-%d")
+    to_ = datetime.strftime(param_to, "%Y-%m-%d")
 
     headers = ['Date', 'ledger', 'item', 'obs', 'obs2', 'value']
     df = pd.DataFrame(lines, columns=headers)
     df.to_csv("transactions-{from_}-{to_}.csv", index=False)
-    click.echo("Dataframe dumped to transactions.csv")
+    click.echo("Dataframe dumped to transactions-{from_}-{to_}.csv")
 
 
 @cli.command("transaction")
